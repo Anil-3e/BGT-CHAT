@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace BGTChatWinForms;
 
 /// <summary>
-/// Represents one row from the Supabase messages table.
+/// Represents one row from the SQLite messages table.
 /// </summary>
 public sealed class MessageModel
 {

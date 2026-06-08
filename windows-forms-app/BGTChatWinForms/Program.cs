@@ -7,13 +7,20 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
 
-        if (!AppSettings.Load().IsConfigured)
+        bool serverStarted = LocalServerManager
+            .EnsureRunningAsync()
+            .GetAwaiter()
+            .GetResult();
+
+        if (!serverStarted)
         {
-            using var setupForm = new SetupForm();
-            if (setupForm.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
+            MessageBox.Show(
+                "The BGT Chat SQLite server could not be started. " +
+                "Please reinstall BGT Chat or start BGTChatServer.exe.",
+                "BGT Chat server",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
         }
 
         Application.Run(new LoginForm());

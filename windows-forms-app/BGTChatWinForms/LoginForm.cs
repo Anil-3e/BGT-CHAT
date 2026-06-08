@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Diagnostics;
 
 namespace BGTChatWinForms;
 
@@ -8,7 +9,7 @@ public sealed class LoginForm : Form
     private readonly TextBox txtUsername = new();
     private readonly TextBox txtRoomCode = new();
     private readonly Button btnJoin = new();
-    private readonly Button btnSettings = new();
+    private readonly Button btnOpenWeb = new();
 
     public LoginForm()
     {
@@ -91,15 +92,15 @@ public sealed class LoginForm : Form
         btnJoin.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
         btnJoin.Click += BtnJoin_Click;
 
-        btnSettings.Text = "Supabase Settings";
-        btnSettings.Location = new Point(36, 354);
-        btnSettings.Size = new Size(338, 25);
-        btnSettings.FlatStyle = FlatStyle.Flat;
-        btnSettings.FlatAppearance.BorderSize = 0;
-        btnSettings.BackColor = Color.White;
-        btnSettings.ForeColor = Color.FromArgb(21, 94, 239);
-        btnSettings.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-        btnSettings.Click += BtnSettings_Click;
+        btnOpenWeb.Text = "Open Web App";
+        btnOpenWeb.Location = new Point(36, 354);
+        btnOpenWeb.Size = new Size(338, 25);
+        btnOpenWeb.FlatStyle = FlatStyle.Flat;
+        btnOpenWeb.FlatAppearance.BorderSize = 0;
+        btnOpenWeb.BackColor = Color.White;
+        btnOpenWeb.ForeColor = Color.FromArgb(21, 94, 239);
+        btnOpenWeb.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+        btnOpenWeb.Click += BtnOpenWeb_Click;
 
         AcceptButton = btnJoin;
 
@@ -113,7 +114,7 @@ public sealed class LoginForm : Form
             roomLabel,
             txtRoomCode,
             btnJoin,
-            btnSettings
+            btnOpenWeb
         });
 
         Controls.Add(card);
@@ -153,9 +154,12 @@ public sealed class LoginForm : Form
         Activate();
     }
 
-    private void BtnSettings_Click(object? sender, EventArgs e)
+    private void BtnOpenWeb_Click(object? sender, EventArgs e)
     {
-        using var setupForm = new SetupForm();
-        setupForm.ShowDialog(this);
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "http://127.0.0.1:5080",
+            UseShellExecute = true
+        });
     }
 }

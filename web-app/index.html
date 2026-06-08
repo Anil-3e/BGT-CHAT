@@ -45,11 +45,11 @@
                     autocomplete="off"
                     placeholder="For example, BGT2026"
                     required>
-                <p class="field-help">Example room: BGT2026</p>
+                <p class="field-help">Use any room code, for example BGT2026 or 221.</p>
 
                 <button id="joinButton" class="primary-button" type="submit">Join Room</button>
                 <p id="joinStatus" class="status-message" role="alert"></p>
-                <button id="setupButton" class="text-button" type="button">Set up Supabase connection</button>
+                <button id="openLocalButton" class="text-button" type="button">Open installed web app</button>
             </form>
         </section>
 
@@ -95,37 +95,5 @@
         </section>
     </main>
 
-    <dialog id="setupDialog" class="setup-dialog">
-        <form id="setupForm" method="dialog">
-            <div class="section-heading">
-                <p class="eyebrow">One-time setup</p>
-                <h2>Connect to Supabase</h2>
-                <p>Enter the Project URL and anon/public key from your Supabase project settings.</p>
-            </div>
-
-            <label for="setupUrl">Supabase Project URL</label>
-            <input
-                id="setupUrl"
-                type="url"
-                placeholder="https://your-project.supabase.co"
-                autocomplete="url"
-                required>
-
-            <label for="setupKey">Supabase anon/public key</label>
-            <textarea
-                id="setupKey"
-                rows="4"
-                placeholder="Paste the anon/public key here"
-                spellcheck="false"
-                required></textarea>
-
-            <p id="setupStatus" class="status-message" role="alert"></p>
-
-            <div class="dialog-actions">
-                <button id="cancelSetupButton" class="secondary-button" type="button">Cancel</button>
-                <button class="primary-button" type="submit">Save Connection</button>
-            </div>
-        </form>
-    </dialog>
 </body>
 </html>

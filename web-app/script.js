@@ -1,6 +1,8 @@
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_KEY = "YOUR_SUPABASE_ANON_PUBLIC_KEY";
-const SETTINGS_STORAGE_KEY = "bgt-chat-supabase-settings";
+const LOCAL_SERVER_URL = "http://127.0.0.1:5080";
+const usesInstalledServer =
+    window.location.protocol === "file:"
+    || window.location.hostname.endsWith("github.io");
+const API_BASE = usesInstalledServer ? `${LOCAL_SERVER_URL}/api` : "/api";
 
 const joinPanel = document.getElementById("joinPanel");
 const chatPanel = document.getElementById("chatPanel");
@@ -14,36 +16,33 @@ const messagesContainer = document.getElementById("messages");
 const joinButton = document.getElementById("joinButton");
 const sendButton = document.getElementById("sendButton");
 const leaveButton = document.getElementById("leaveButton");
+const openLocalButton = document.getElementById("openLocalButton");
 const joinStatus = document.getElementById("joinStatus");
 const chatStatus = document.getElementById("chatStatus");
 const activeRoom = document.getElementById("activeRoom");
 const activeUser = document.getElementById("activeUser");
-const setupButton = document.getElementById("setupButton");
-const setupDialog = document.getElementById("setupDialog");
-const setupForm = document.getElementById("setupForm");
-const setupUrlInput = document.getElementById("setupUrl");
-const setupKeyInput = document.getElementById("setupKey");
-const setupStatus = document.getElementById("setupStatus");
-const cancelSetupButton = document.getElementById("cancelSetupButton");
 
 let currentUsername = "";
 let currentRoomCode = "";
 let refreshTimer = null;
 let loadedMessages = [];
 
-// A room in the URL, such as ?room=BGT2026, is entered automatically.
 const roomFromUrl = new URLSearchParams(window.location.search).get("room");
 if (roomFromUrl) {
     roomCodeInput.value = roomFromUrl.trim().toUpperCase();
+}
+
+if (!usesInstalledServer) {
+    openLocalButton.classList.add("hidden");
 }
 
 joinForm.addEventListener("submit", joinRoom);
 messageForm.addEventListener("submit", sendMessage);
 leaveButton.addEventListener("click", leaveRoom);
 searchInput.addEventListener("input", renderMessages);
-setupButton.addEventListener("click", openSetupDialog);
-setupForm.addEventListener("submit", saveSupabaseSettings);
-cancelSetupButton.addEventListener("click", () => setupDialog.close());
+openLocalButton.addEventListener("click", () => {
+    window.location.href = LOCAL_SERVER_URL;
+});
 roomCodeInput.addEventListener("input", () => {
     roomCodeInput.value = roomCodeInput.value.toUpperCase();
 });
@@ -60,21 +59,14 @@ async function joinRoom(event) {
         return;
     }
 
-    if (!supabaseIsConfigured()) {
-        showStatus(joinStatus, "Set up the Supabase connection first.");
-        openSetupDialog();
-        return;
-    }
-
     joinButton.disabled = true;
     joinButton.textContent = "Joining...";
 
     try {
-        const roomExists = await checkRoomExists(roomCode);
-        if (!roomExists) {
-            showStatus(joinStatus, `Room "${roomCode}" does not exist.`);
-            return;
-        }
+        await apiRequest("/rooms/join", {
+            method: "POST",
+            body: JSON.stringify({ room_code: roomCode })
+        });
 
         currentUsername = username;
         currentRoomCode = roomCode;
@@ -95,21 +87,6 @@ async function joinRoom(event) {
     }
 }
 
-async function checkRoomExists(roomCode) {
-    const endpoint = `${apiBase()}/rooms?room_code=eq.${encodeURIComponent(roomCode)}&select=room_code&limit=1`;
-    const response = await fetch(endpoint, {
-        method: "GET",
-        headers: requestHeaders()
-    });
-
-    if (!response.ok) {
-        throw new Error(await getSupabaseError(response));
-    }
-
-    const rooms = await response.json();
-    return rooms.length > 0;
-}
-
 async function loadMessages(silent = false) {
     if (!currentRoomCode) {
         return;
@@ -118,22 +95,9 @@ async function loadMessages(silent = false) {
     messagesContainer.setAttribute("aria-busy", "true");
 
     try {
-        const endpoint =
-            `${apiBase()}/messages` +
-            `?room_code=eq.${encodeURIComponent(currentRoomCode)}` +
-            "&select=id,room_code,username,message_text,created_at" +
-            "&order=created_at.asc";
-
-        const response = await fetch(endpoint, {
-            method: "GET",
-            headers: requestHeaders()
-        });
-
-        if (!response.ok) {
-            throw new Error(await getSupabaseError(response));
-        }
-
-        loadedMessages = await response.json();
+        loadedMessages = await apiRequest(
+            `/messages?roomCode=${encodeURIComponent(currentRoomCode)}`
+        );
         renderMessages();
         clearStatus(chatStatus);
     } catch (error) {
@@ -160,23 +124,14 @@ async function sendMessage(event) {
     sendButton.textContent = "Sending...";
 
     try {
-        const response = await fetch(`${apiBase()}/messages`, {
+        await apiRequest("/messages", {
             method: "POST",
-            headers: {
-                ...requestHeaders(),
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-            },
             body: JSON.stringify({
                 room_code: currentRoomCode,
                 username: currentUsername,
                 message_text: messageText
             })
         });
-
-        if (!response.ok) {
-            throw new Error(await getSupabaseError(response));
-        }
 
         messageInput.value = "";
         await loadMessages();
@@ -189,6 +144,26 @@ async function sendMessage(event) {
     }
 }
 
+async function apiRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(await getApiError(response));
+    }
+
+    if (response.status === 204) {
+        return null;
+    }
+
+    return response.json();
+}
+
 function renderMessages() {
     const keyword = searchInput.value.trim().toLowerCase();
     const filteredMessages = loadedMessages.filter((message) => {
@@ -197,7 +172,9 @@ function renderMessages() {
     });
 
     const wasNearBottom =
-        messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 80;
+        messagesContainer.scrollHeight
+        - messagesContainer.scrollTop
+        - messagesContainer.clientHeight < 80;
 
     messagesContainer.replaceChildren();
 
@@ -259,85 +236,18 @@ function leaveRoom() {
     usernameInput.focus();
 }
 
-function requestHeaders() {
-    const settings = getSupabaseSettings();
-    return {
-        "apikey": settings.key,
-        "Authorization": `Bearer ${settings.key}`
-    };
-}
-
-function apiBase() {
-    return `${getSupabaseSettings().url.replace(/\/$/, "")}/rest/v1`;
-}
-
-function supabaseIsConfigured() {
-    const settings = getSupabaseSettings();
-    return settings.url.startsWith("https://")
-        && !settings.url.includes("YOUR_SUPABASE")
-        && settings.key.length > 20
-        && !settings.key.includes("YOUR_SUPABASE");
-}
-
-function getSupabaseSettings() {
-    try {
-        const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY));
-        if (savedSettings?.url && savedSettings?.key) {
-            return savedSettings;
-        }
-    } catch {
-        localStorage.removeItem(SETTINGS_STORAGE_KEY);
-    }
-
-    return {
-        url: SUPABASE_URL,
-        key: SUPABASE_KEY
-    };
-}
-
-function openSetupDialog() {
-    const settings = getSupabaseSettings();
-    setupUrlInput.value = settings.url.includes("YOUR_SUPABASE") ? "" : settings.url;
-    setupKeyInput.value = settings.key.includes("YOUR_SUPABASE") ? "" : settings.key;
-    clearStatus(setupStatus);
-    setupDialog.showModal();
-    setupUrlInput.focus();
-}
-
-function saveSupabaseSettings(event) {
-    event.preventDefault();
-
-    const url = setupUrlInput.value.trim().replace(/\/$/, "");
-    const key = setupKeyInput.value.trim();
-
-    if (!url.startsWith("https://") || !url.includes(".supabase.co")) {
-        showStatus(setupStatus, "Enter a valid Supabase Project URL.");
-        return;
-    }
-
-    if (key.length < 20) {
-        showStatus(setupStatus, "Enter the complete anon/public key.");
-        return;
-    }
-
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ url, key }));
-    setupDialog.close();
-    clearStatus(joinStatus);
-    showStatus(joinStatus, "Supabase connection saved. You can join a room now.", true);
-}
-
-async function getSupabaseError(response) {
+async function getApiError(response) {
     try {
         const error = await response.json();
-        return error.message || error.hint || `Supabase request failed (${response.status}).`;
+        return error.message || `Chat server request failed (${response.status}).`;
     } catch {
-        return `Supabase request failed (${response.status}).`;
+        return `Chat server request failed (${response.status}).`;
     }
 }
 
 function readableError(error) {
     if (error instanceof TypeError) {
-        return "Could not connect to Supabase. Check the URL, key, and internet connection.";
+        return "The BGT Chat server is not running. Start the installed BGT Chat app, then try again.";
     }
 
     return error.message || "Something went wrong.";

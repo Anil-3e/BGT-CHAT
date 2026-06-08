@@ -2,3 +2,6 @@
 **/bin/
 **/obj/
 dist/
+*.db
+*.db-shm
+*.db-wal

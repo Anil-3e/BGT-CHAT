@@ -13,7 +13,7 @@ public sealed class ChatForm : Form
 
     private readonly string username;
     private readonly string roomCode;
-    private readonly SupabaseService supabaseService = new();
+    private readonly ChatApiService chatApiService = new();
     private bool isRefreshing;
 
     public ChatForm(string username, string roomCode)
@@ -150,9 +150,18 @@ public sealed class ChatForm : Form
 
     private async void ChatForm_Load(object? sender, EventArgs e)
     {
-        await RefreshMessagesAsync(showErrors: true);
-        timerRefresh.Start();
-        txtMessage.Focus();
+        try
+        {
+            await chatApiService.JoinRoomAsync(roomCode);
+            await RefreshMessagesAsync(showErrors: true);
+            timerRefresh.Start();
+            txtMessage.Focus();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+            Close();
+        }
     }
 
     private async void BtnSend_Click(object? sender, EventArgs e)
@@ -189,7 +198,7 @@ public sealed class ChatForm : Form
 
         try
         {
-            await supabaseService.SendMessageAsync(roomCode, username, messageText);
+            await chatApiService.SendMessageAsync(roomCode, username, messageText);
             txtMessage.Clear();
             await RefreshMessagesAsync(showErrors: true);
         }
@@ -222,7 +231,7 @@ public sealed class ChatForm : Form
         try
         {
             List<MessageModel> messages =
-                await supabaseService.LoadMessagesAsync(roomCode);
+                await chatApiService.LoadMessagesAsync(roomCode);
             DisplayMessages(messages);
         }
         catch (Exception ex)
@@ -270,6 +279,6 @@ public sealed class ChatForm : Form
     {
         timerRefresh.Stop();
         timerRefresh.Dispose();
-        supabaseService.Dispose();
+        chatApiService.Dispose();
     }
 }
