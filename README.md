@@ -10,7 +10,7 @@ This project is designed to be easy to demonstrate and explain in class.
 ## Open or Download
 
 - **Web App:** [https://anil-3e.github.io/BGT-CHAT/](https://anil-3e.github.io/BGT-CHAT/)
-- **Windows Setup:** [Download BGTChat-Setup.exe](https://github.com/Anil-3e/BGT-CHAT/raw/main/downloads/BGTChat-Setup.exe)
+- **Windows Setup:** [Download BGTChat-Setup.exe](https://raw.githubusercontent.com/Anil-3e/BGT-CHAT/main/downloads/BGTChat-Setup.exe)
 
 The website and installed Windows app ask for the same Supabase Project URL and
 anon/public key. The Windows setup contains the .NET runtime, so the finished
@@ -160,7 +160,7 @@ Enter a username, enter one of the example room codes, and click **Join Room**.
 
 ### Install the Finished App
 
-1. Download [BGTChat-Setup.exe](https://github.com/Anil-3e/BGT-CHAT/raw/main/downloads/BGTChat-Setup.exe).
+1. Download [BGTChat-Setup.exe](https://raw.githubusercontent.com/Anil-3e/BGT-CHAT/main/downloads/BGTChat-Setup.exe).
 2. Open the downloaded setup file.
 3. Complete the installation wizard.
 4. Start **BGT Chat** from the Start menu.
