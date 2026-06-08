@@ -15,6 +15,9 @@ No Supabase account, API key, or external database setup is required.
 Install and start BGT Chat before using either web link. The installed SQLite
 server runs on the computer at port `5080`.
 
+The public GitHub Pages link is a launcher. After you enter a username and room
+code, it opens the installed local Web App and joins that room automatically.
+
 ## Features
 
 - Username and room code login

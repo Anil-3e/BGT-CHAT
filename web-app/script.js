@@ -1,8 +1,8 @@
 const LOCAL_SERVER_URL = "http://127.0.0.1:5080";
-const usesInstalledServer =
+const isLauncherPage =
     window.location.protocol === "file:"
     || window.location.hostname.endsWith("github.io");
-const API_BASE = usesInstalledServer ? `${LOCAL_SERVER_URL}/api` : "/api";
+const API_BASE = "/api";
 
 const joinPanel = document.getElementById("joinPanel");
 const chatPanel = document.getElementById("chatPanel");
@@ -32,7 +32,12 @@ if (roomFromUrl) {
     roomCodeInput.value = roomFromUrl.trim().toUpperCase();
 }
 
-if (!usesInstalledServer) {
+const usernameFromUrl = new URLSearchParams(window.location.search).get("username");
+if (usernameFromUrl) {
+    usernameInput.value = usernameFromUrl.trim();
+}
+
+if (!isLauncherPage) {
     openLocalButton.classList.add("hidden");
 }
 
@@ -41,7 +46,11 @@ messageForm.addEventListener("submit", sendMessage);
 leaveButton.addEventListener("click", leaveRoom);
 searchInput.addEventListener("input", renderMessages);
 openLocalButton.addEventListener("click", () => {
-    window.location.href = LOCAL_SERVER_URL;
+    openInstalledWebApp(
+        usernameInput.value.trim(),
+        roomCodeInput.value.trim().toUpperCase(),
+        false
+    );
 });
 roomCodeInput.addEventListener("input", () => {
     roomCodeInput.value = roomCodeInput.value.toUpperCase();
@@ -56,6 +65,11 @@ async function joinRoom(event) {
 
     if (!username || !roomCode) {
         showStatus(joinStatus, "Please enter both a username and a room code.");
+        return;
+    }
+
+    if (isLauncherPage) {
+        openInstalledWebApp(username, roomCode, true);
         return;
     }
 
@@ -85,6 +99,24 @@ async function joinRoom(event) {
         joinButton.disabled = false;
         joinButton.textContent = "Join Room";
     }
+}
+
+function openInstalledWebApp(username, roomCode, joinAutomatically) {
+    const localUrl = new URL(LOCAL_SERVER_URL);
+
+    if (username) {
+        localUrl.searchParams.set("username", username);
+    }
+
+    if (roomCode) {
+        localUrl.searchParams.set("room", roomCode);
+    }
+
+    if (joinAutomatically) {
+        localUrl.searchParams.set("join", "1");
+    }
+
+    window.location.href = localUrl;
 }
 
 async function loadMessages(silent = false) {
@@ -282,3 +314,12 @@ function clearStatus(element) {
 window.addEventListener("beforeunload", () => {
     window.clearInterval(refreshTimer);
 });
+
+if (
+    !isLauncherPage
+    && new URLSearchParams(window.location.search).get("join") === "1"
+    && usernameInput.value.trim()
+    && roomCodeInput.value.trim()
+) {
+    joinForm.requestSubmit();
+}
